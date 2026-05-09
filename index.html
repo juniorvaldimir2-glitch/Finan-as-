@@ -165,9 +165,23 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   <div class="header-row">
     <div class="header-title">💰 Finanças</div>
     <div class="month-nav">
-      <button class="mbtn" onclick="changeMonth(-1)">‹</button>
-      <span class="mlabel" id="monthLabel"></span>
-      <button class="mbtn" onclick="changeMonth(1)">›</button>
+      <button class="mbtn" id="btnPrevPeriod" onclick="changePeriod(-1)">‹</button>
+      <span class="mlabel" id="monthLabel" onclick="toggleHeaderFilter()" style="cursor:pointer" title="Clique para filtrar"></span>
+      <button class="mbtn" id="btnNextPeriod" onclick="changePeriod(1)">›</button>
+    </div>
+  </div>
+  <div id="headerFilterRow" style="display:none;margin-bottom:12px">
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+      <button class="fbtn active" id="hfMes" onclick="setHeaderFilter('mes',this)">Mês</button>
+      <button class="fbtn" id="hfCustom" onclick="setHeaderFilter('custom',this)">Meu período</button>
+    </div>
+    <div id="hfCustomFields" style="display:none">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Seu ciclo: dia ___ até dia ___ do próximo mês</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:12px;color:var(--muted2)">Dia início:</span>
+        <input type="number" id="hfDiaInicio" min="1" max="28" value="9" style="width:60px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:14px;outline:none;text-align:center" onchange="renderHeaderPeriod()">
+        <span style="font-size:12px;color:var(--muted2)">de cada mês</span>
+      </div>
     </div>
   </div>
   <div class="kpi-row">
@@ -363,6 +377,20 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <div class="field" id="fieldCat"><label>Categoria</label><select id="inpCat"></select></div>
     <div class="field" id="fieldInvCat" style="display:none"><label>Tipo de investimento</label><select id="inpInvCat"></select></div>
     <div class="field"><label>Data</label><input type="date" id="inpData"></div>
+    <div class="field" id="fieldRecorrente">
+      <label>Recorrente?</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <button class="tbtn" id="btnNaoRec" onclick="setRecorrente(false)" style="background:rgba(61,232,160,0.12);border-color:var(--green);color:var(--green)">Não</button>
+        <button class="tbtn" id="btnSimRec" onclick="setRecorrente(true)">Sim (mensal)</button>
+      </div>
+      <div id="fieldRecMeses" style="display:none">
+        <div class="field">
+          <label>Repetir por quantos meses?</label>
+          <input type="number" id="inpRecMeses" placeholder="Ex: 12" inputmode="numeric" min="2" max="60" value="12">
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5">Ex: Netflix por 12 meses — lança automaticamente todo mês.</div>
+      </div>
+    </div>
     <div class="field">
       <label>Parcelado?</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -443,6 +471,8 @@ var viewDate = new Date();
 var currentTipo = 'gasto';
 var currentCatTipo = 'gasto';
 var filterMode = 'mes';
+var headerFilter = 'mes';
+var headerDiaInicio = 9;
 var analiseMode = '3m';
 var charts = {};
 
@@ -512,6 +542,44 @@ function inRange(r, from, to) {
   var dt = toDate(r.data);
   return dt >= from && dt <= to;
 }
+function toggleHeaderFilter() {
+  var el = document.getElementById('headerFilterRow');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function setHeaderFilter(mode, btn) {
+  headerFilter = mode;
+  document.querySelectorAll('#headerFilterRow .fbtn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('hfCustomFields').style.display = mode === 'custom' ? 'block' : 'none';
+  renderHeaderPeriod();
+}
+
+function renderHeaderPeriod() {
+  headerDiaInicio = parseInt(document.getElementById('hfDiaInicio').value) || 9;
+  render();
+}
+
+function getHeaderRange() {
+  var now = new Date();
+  if (headerFilter === 'mes') {
+    return {from: new Date(viewDate.getFullYear(), viewDate.getMonth(), 1), to: new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 0)};
+  }
+  // Custom: from day X of viewDate month to day X-1 of next month
+  var from = new Date(viewDate.getFullYear(), viewDate.getMonth(), headerDiaInicio);
+  var to = new Date(viewDate.getFullYear(), viewDate.getMonth()+1, headerDiaInicio-1);
+  return {from: from, to: to};
+}
+
+function changePeriod(d) {
+  viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + d, 1);
+  render();
+}
+
+function changeMonth(d) {
+  changePeriod(d);
+}
+
 function getRange() {
   var now = new Date();
   if (filterMode === 'mes') {
@@ -545,10 +613,7 @@ function goPage(name, btn) {
   if (name === 'config') renderConfig();
 }
 
-function changeMonth(d) {
-  viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + d, 1);
-  render();
-}
+
 
 // ============================================================
 // MODAL
@@ -558,7 +623,9 @@ function abrirModal() {
   document.getElementById('inpValor').value = '';
   document.getElementById('inpDesc').value = '';
   document.getElementById('inpParcelas').value = '2';
+  document.getElementById('inpRecMeses').value = '12';
   setParcelado(false);
+  setRecorrente(false);
   setTipo('gasto');
   buildSelects();
   document.getElementById('overlay').classList.add('open');
@@ -566,6 +633,20 @@ function abrirModal() {
 }
 
 var isParcelado = false;
+var isRecorrente = false;
+
+function setRecorrente(sim) {
+  isRecorrente = sim;
+  document.getElementById('btnNaoRec').style.background = sim ? '' : 'rgba(61,232,160,0.12)';
+  document.getElementById('btnNaoRec').style.borderColor = sim ? '' : 'var(--green)';
+  document.getElementById('btnNaoRec').style.color = sim ? '' : 'var(--green)';
+  document.getElementById('btnSimRec').style.background = sim ? 'rgba(167,139,250,0.12)' : '';
+  document.getElementById('btnSimRec').style.borderColor = sim ? 'var(--purple)' : '';
+  document.getElementById('btnSimRec').style.color = sim ? 'var(--purple)' : '';
+  document.getElementById('fieldRecMeses').style.display = sim ? 'block' : 'none';
+  if (sim) { setParcelado(false); document.getElementById('fieldParcelas').style.display = 'none'; }
+}
+
 function setParcelado(sim) {
   isParcelado = sim;
   document.getElementById('btnNaoParcela').style.background = sim ? '' : 'rgba(61,232,160,0.12)';
@@ -622,7 +703,24 @@ function salvarRegistro() {
   var d = getData();
   var dt = toDate(data);
 
-  if (isParcelado) {
+  if (isRecorrente) {
+    var nMeses = parseInt(document.getElementById('inpRecMeses').value);
+    if (!nMeses || nMeses < 2) { alert('Digite o número de meses (mínimo 2).'); return; }
+    var i;
+    for (i = 0; i < nMeses; i++) {
+      var mesRec = new Date(dt.getFullYear(), dt.getMonth() + i, dt.getDate());
+      var dataRecStr = mesRec.getFullYear() + '-' + String(mesRec.getMonth()+1).padStart(2,'0') + '-' + String(mesRec.getDate()).padStart(2,'0');
+      d.push({
+        id: Date.now() + i,
+        tipo: currentTipo,
+        valor: valor,
+        desc: desc,
+        cat: cat,
+        data: dataRecStr,
+        recorrente: true
+      });
+    }
+  } else if (isParcelado) {
     var nParcelas = parseInt(document.getElementById('inpParcelas').value);
     if (!nParcelas || nParcelas < 2) { alert('Digite o número de parcelas (mínimo 2).'); return; }
     var valorParcela = Math.round((valor / nParcelas) * 100) / 100;
@@ -708,9 +806,17 @@ function getAnaliseMeses() {
 // RENDER PRINCIPAL
 // ============================================================
 function render() {
-  document.getElementById('monthLabel').textContent = MESES[viewDate.getMonth()] + ' ' + viewDate.getFullYear();
   var all = getData();
-  var mes = all.filter(function(r) { return inMonth(r, viewDate); });
+  var hRange = getHeaderRange();
+  var lbl = document.getElementById('monthLabel');
+  if (headerFilter === 'custom') {
+    var d1 = hRange.from.toLocaleDateString('pt-BR', {day:'2-digit',month:'short'});
+    var d2 = hRange.to.toLocaleDateString('pt-BR', {day:'2-digit',month:'short'});
+    lbl.textContent = d1 + ' – ' + d2;
+  } else {
+    lbl.textContent = MESES[viewDate.getMonth()] + ' ' + viewDate.getFullYear();
+  }
+  var mes = all.filter(function(r) { return inRange(r, hRange.from, hRange.to); });
   var rec = mes.filter(function(r) { return r.tipo === 'receita'; }).reduce(function(a,r) { return a+r.valor; }, 0);
   var gas = mes.filter(function(r) { return r.tipo === 'gasto'; }).reduce(function(a,r) { return a+r.valor; }, 0);
   var inv = mes.filter(function(r) { return r.tipo === 'inv'; }).reduce(function(a,r) { return a+r.valor; }, 0);
@@ -734,7 +840,8 @@ function render() {
 // ============================================================
 function renderResumo() {
   var all = getData();
-  var mes = all.filter(function(r) { return inMonth(r, viewDate); });
+  var hRange = getHeaderRange();
+  var mes = all.filter(function(r) { return inRange(r, hRange.from, hRange.to); });
   var rec = mes.filter(function(r) { return r.tipo === 'receita'; }).reduce(function(a,r) { return a+r.valor; }, 0);
   var gas = mes.filter(function(r) { return r.tipo === 'gasto'; }).reduce(function(a,r) { return a+r.valor; }, 0);
   var inv = mes.filter(function(r) { return r.tipo === 'inv'; }).reduce(function(a,r) { return a+r.valor; }, 0);
