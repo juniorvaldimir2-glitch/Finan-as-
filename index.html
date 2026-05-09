@@ -359,6 +359,45 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 <!-- FAB -->
 <button class="fab" id="fabBtn" onclick="abrirModal()">+</button>
 
+<!-- MODAL EDITAR -->
+<div class="overlay" id="overlayEdit" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Editar registro</div>
+    <div class="field">
+      <label>Tipo</label>
+      <div class="toggle-row">
+        <button class="tbtn" id="eGasto" onclick="setEditTipo('gasto')">📤 Gasto</button>
+        <button class="tbtn" id="eReceita" onclick="setEditTipo('receita')">📥 Receita</button>
+        <button class="tbtn" id="eInv" onclick="setEditTipo('inv')">📈 Invest.</button>
+      </div>
+    </div>
+    <div class="field"><label>Valor (R$)</label><input type="number" id="editValor" placeholder="0,00" inputmode="decimal" step="0.01" min="0"></div>
+    <div class="field"><label>Descrição</label><input type="text" id="editDesc"></div>
+    <div class="field" id="editFieldCat"><label>Categoria</label><select id="editCat"></select></div>
+    <div class="field" id="editFieldInv" style="display:none"><label>Tipo investimento</label><select id="editInvCat"></select></div>
+    <div class="field"><label>Data</label><input type="date" id="editData"></div>
+    <button class="save-btn" onclick="salvarEdicao()">Salvar alterações</button>
+    <button class="sec-btn" onclick="document.getElementById('overlayEdit').classList.remove('open')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL EDITAR -->
+<div class="overlay" id="overlayEdit" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Editar registro</div>
+    <div class="field"><label>Tipo</label><div class="toggle-row"><button class="tbtn ag" id="eGasto" onclick="setEditTipo('gasto')">Gasto</button><button class="tbtn" id="eReceita" onclick="setEditTipo('receita')">Receita</button><button class="tbtn" id="eInv" onclick="setEditTipo('inv')">Invest.</button></div></div>
+    <div class="field"><label>Valor (R$)</label><input type="number" id="editValor" placeholder="0,00" inputmode="decimal" step="0.01" min="0"></div>
+    <div class="field"><label>Descricao</label><input type="text" id="editDesc"></div>
+    <div class="field" id="editFieldCat"><label>Categoria</label><select id="editCat"></select></div>
+    <div class="field" id="editFieldInv" style="display:none"><label>Tipo investimento</label><select id="editInvCat"></select></div>
+    <div class="field"><label>Data</label><input type="date" id="editData"></div>
+    <button class="save-btn" onclick="salvarEdicao()">Salvar alteracoes</button>
+    <button class="sec-btn" onclick="document.getElementById('overlayEdit').classList.remove('open')">Cancelar</button>
+  </div>
+</div>
+
 <!-- MODAL LANÇAMENTO -->
 <div class="overlay" id="overlay" onclick="fecharModal(event)">
   <div class="modal">
@@ -1233,6 +1272,63 @@ function salvarEditCat(tipo, key) {
 
 
 
+
+// EDITAR REGISTRO
+var editId = null;
+var editTipoAtual = 'gasto';
+
+function abrirEdit(id) {
+  var d = getData();
+  var reg = null;
+  for (var i = 0; i < d.length; i++) { if (d[i].id === id) { reg = d[i]; break; } }
+  if (!reg) return;
+  editId = id;
+  var cg = getCatsGasto(); var ci = getCatsInv();
+  var selG = document.getElementById('editCat');
+  var selI = document.getElementById('editInvCat');
+  selG.innerHTML = ''; selI.innerHTML = '';
+  var k;
+  for (k in cg) { var o = document.createElement('option'); o.value = k; o.textContent = cg[k].icon + ' ' + cg[k].label; selG.appendChild(o); }
+  for (k in ci) { var o2 = document.createElement('option'); o2.value = k; o2.textContent = ci[k].icon + ' ' + ci[k].label; selI.appendChild(o2); }
+  setEditTipo(reg.tipo);
+  document.getElementById('editValor').value = reg.valor;
+  document.getElementById('editDesc').value = reg.desc;
+  document.getElementById('editData').value = reg.data;
+  if (reg.tipo === 'inv') document.getElementById('editInvCat').value = reg.cat;
+  else document.getElementById('editCat').value = reg.cat;
+  document.getElementById('overlayEdit').classList.add('open');
+}
+
+function setEditTipo(t) {
+  editTipoAtual = t;
+  document.getElementById('eGasto').className = 'tbtn' + (t === 'gasto' ? ' ag' : '');
+  document.getElementById('eReceita').className = 'tbtn' + (t === 'receita' ? ' ar' : '');
+  document.getElementById('eInv').className = 'tbtn' + (t === 'inv' ? ' ai' : '');
+  document.getElementById('editFieldCat').style.display = t === 'inv' ? 'none' : 'block';
+  document.getElementById('editFieldInv').style.display = t === 'inv' ? 'block' : 'none';
+}
+
+function salvarEdicao() {
+  var valor = parseFloat(document.getElementById('editValor').value);
+  var desc = document.getElementById('editDesc').value.trim();
+  var data = document.getElementById('editData').value;
+  if (!valor || valor <= 0) { alert('Digite um valor valido.'); return; }
+  if (!desc) { alert('Digite uma descricao.'); return; }
+  if (!data) { alert('Selecione uma data.'); return; }
+  var cat = editTipoAtual === 'inv' ? document.getElementById('editInvCat').value : document.getElementById('editCat').value;
+  var d = getData();
+  for (var i = 0; i < d.length; i++) {
+    if (d[i].id === editId) {
+      d[i].tipo = editTipoAtual; d[i].valor = valor; d[i].desc = desc; d[i].cat = cat; d[i].data = data;
+      break;
+    }
+  }
+  setData(d);
+  document.getElementById('overlayEdit').classList.remove('open');
+  var dt = toDate(data);
+  viewDate = new Date(dt.getFullYear(), dt.getMonth(), 1);
+  render(); renderRegistros();
+}
 </script>
 </body>
 </html>
