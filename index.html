@@ -359,30 +359,8 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 <!-- FAB -->
 <button class="fab" id="fabBtn" onclick="abrirModal()">+</button>
 
-<!-- MODAL EDITAR -->
-<div class="overlay" id="overlayEdit" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Editar registro</div>
-    <div class="field">
-      <label>Tipo</label>
-      <div class="toggle-row">
-        <button class="tbtn" id="eGasto" onclick="setEditTipo('gasto')">📤 Gasto</button>
-        <button class="tbtn" id="eReceita" onclick="setEditTipo('receita')">📥 Receita</button>
-        <button class="tbtn" id="eInv" onclick="setEditTipo('inv')">📈 Invest.</button>
-      </div>
-    </div>
-    <div class="field"><label>Valor (R$)</label><input type="number" id="editValor" placeholder="0,00" inputmode="decimal" step="0.01" min="0"></div>
-    <div class="field"><label>Descrição</label><input type="text" id="editDesc"></div>
-    <div class="field" id="editFieldCat"><label>Categoria</label><select id="editCat"></select></div>
-    <div class="field" id="editFieldInv" style="display:none"><label>Tipo investimento</label><select id="editInvCat"></select></div>
-    <div class="field"><label>Data</label><input type="date" id="editData"></div>
-    <button class="save-btn" onclick="salvarEdicao()">Salvar alterações</button>
-    <button class="sec-btn" onclick="document.getElementById('overlayEdit').classList.remove('open')">Cancelar</button>
-  </div>
-</div>
 
-<!-- MODAL EDITAR -->
+
 <div class="overlay" id="overlayEdit" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -464,27 +442,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   </div>
 </div>
 
-<!-- MODAL EDITAR -->
-<div class="overlay" id="overlayEdit" onclick="fecharEdit(event)">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Editar registro</div>
-    <div class="field">
-      <label>Tipo</label>
-      <div class="toggle-row">
-        <button class="tbtn" id="eGasto" onclick="setEditTipo('gasto')">📤 Gasto</button>
-        <button class="tbtn" id="eReceita" onclick="setEditTipo('receita')">📥 Receita</button>
-        <button class="tbtn" id="eInv" onclick="setEditTipo('inv')">📈 Invest.</button>
-      </div>
-    </div>
-    <div class="field"><label>Valor (R$)</label><input type="number" id="editValor" placeholder="0,00" inputmode="decimal" step="0.01" min="0"></div>
-    <div class="field"><label>Descrição</label><input type="text" id="editDesc"></div>
-    <div class="field" id="editFieldCat"><label>Categoria</label><select id="editCat"></select></div>
-    <div class="field" id="editFieldInv" style="display:none"><label>Tipo de investimento</label><select id="editInvCat"></select></div>
-    <div class="field"><label>Data</label><input type="date" id="editData"></div>
-    <button class="save-btn" onclick="salvarEdicao()">Salvar alterações</button>
-    <button class="sec-btn" onclick="document.getElementById('overlayEdit').classList.remove('open')">Cancelar</button>
-  </div>
+<div class="overlay" 
 </div>
 
 <script>
