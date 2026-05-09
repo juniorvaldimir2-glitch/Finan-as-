@@ -393,7 +393,21 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <div class="field" id="editFieldCat"><label>Categoria</label><select id="editCat"></select></div>
     <div class="field" id="editFieldInv" style="display:none"><label>Tipo investimento</label><select id="editInvCat"></select></div>
     <div class="field"><label>Data</label><input type="date" id="editData"></div>
-    <button class="save-btn" onclick="salvarEdicao()">Salvar alteracoes</button>
+    <div class="field">
+      <label>Tornar recorrente?</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="tbtn" id="editBtnNaoRec" onclick="setEditRec(false)" style="background:rgba(61,232,160,0.12);border-color:var(--green);color:var(--green)">Não</button>
+        <button class="tbtn" id="editBtnSimRec" onclick="setEditRec(true)">Sim (mensal)</button>
+      </div>
+    </div>
+    <div id="editRecField" style="display:none">
+      <div class="field">
+        <label>Repetir por quantos meses?</label>
+        <input type="number" id="editRecMeses" placeholder="Ex: 12" inputmode="numeric" min="1" max="60" value="12">
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.5">Vai criar um lançamento por mês a partir da data selecionada, substituindo este registro.</div>
+    </div>
+    <button class="save-btn" onclick="salvarEdicao()">Salvar alterações</button>
     <button class="sec-btn" onclick="document.getElementById('overlayEdit').classList.remove('open')">Cancelar</button>
   </div>
 </div>
@@ -1296,6 +1310,9 @@ function abrirEdit(id) {
   document.getElementById('editData').value = reg.data;
   if (reg.tipo === 'inv') document.getElementById('editInvCat').value = reg.cat;
   else document.getElementById('editCat').value = reg.cat;
+  editIsRec = false;
+  setEditRec(false);
+  document.getElementById('editRecMeses').value = '12';
   document.getElementById('overlayEdit').classList.add('open');
 }
 
@@ -1308,24 +1325,52 @@ function setEditTipo(t) {
   document.getElementById('editFieldInv').style.display = t === 'inv' ? 'block' : 'none';
 }
 
+var editIsRec = false;
+
+function setEditRec(sim) {
+  editIsRec = sim;
+  document.getElementById('editBtnNaoRec').style.background = sim ? '' : 'rgba(61,232,160,0.12)';
+  document.getElementById('editBtnNaoRec').style.borderColor = sim ? '' : 'var(--green)';
+  document.getElementById('editBtnNaoRec').style.color = sim ? '' : 'var(--green)';
+  document.getElementById('editBtnSimRec').style.background = sim ? 'rgba(167,139,250,0.12)' : '';
+  document.getElementById('editBtnSimRec').style.borderColor = sim ? 'var(--purple)' : '';
+  document.getElementById('editBtnSimRec').style.color = sim ? 'var(--purple)' : '';
+  document.getElementById('editRecField').style.display = sim ? 'block' : 'none';
+}
+
 function salvarEdicao() {
   var valor = parseFloat(document.getElementById('editValor').value);
   var desc = document.getElementById('editDesc').value.trim();
   var data = document.getElementById('editData').value;
-  if (!valor || valor <= 0) { alert('Digite um valor valido.'); return; }
-  if (!desc) { alert('Digite uma descricao.'); return; }
+  if (!valor || valor <= 0) { alert('Digite um valor válido.'); return; }
+  if (!desc) { alert('Digite uma descrição.'); return; }
   if (!data) { alert('Selecione uma data.'); return; }
   var cat = editTipoAtual === 'inv' ? document.getElementById('editInvCat').value : document.getElementById('editCat').value;
   var d = getData();
-  for (var i = 0; i < d.length; i++) {
-    if (d[i].id === editId) {
-      d[i].tipo = editTipoAtual; d[i].valor = valor; d[i].desc = desc; d[i].cat = cat; d[i].data = data;
-      break;
+  var dt = toDate(data);
+
+  if (editIsRec) {
+    var nMeses = parseInt(document.getElementById('editRecMeses').value);
+    if (!nMeses || nMeses < 1) { alert('Digite o número de meses.'); return; }
+    // Remove registro atual
+    d = d.filter(function(r) { return r.id !== editId; });
+    // Criar recorrentes
+    for (var i = 0; i < nMeses; i++) {
+      var mes = new Date(dt.getFullYear(), dt.getMonth() + i, dt.getDate());
+      var dataStr = mes.getFullYear() + '-' + String(mes.getMonth()+1).padStart(2,'0') + '-' + String(mes.getDate()).padStart(2,'0');
+      d.push({id: Date.now() + i, tipo: editTipoAtual, valor: valor, desc: desc, cat: cat, data: dataStr, recorrente: true});
+    }
+  } else {
+    for (var j = 0; j < d.length; j++) {
+      if (d[j].id === editId) {
+        d[j].tipo = editTipoAtual; d[j].valor = valor; d[j].desc = desc; d[j].cat = cat; d[j].data = data;
+        break;
+      }
     }
   }
+
   setData(d);
   document.getElementById('overlayEdit').classList.remove('open');
-  var dt = toDate(data);
   viewDate = new Date(dt.getFullYear(), dt.getMonth(), 1);
   render(); renderRegistros();
 }
